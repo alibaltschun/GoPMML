@@ -50,7 +50,7 @@ type NumericPredictor struct {
 // input  : Logistic Regression PMML file path
 // output : Golang Logistic Regression model
 func NewLogisticRegression(fileModel string) (LogisticRegression, error) {
-	model := LogisticRegression{}
+	var model LogisticRegression
 
 	// get binary data of pmml file
 	modelXML, err := ioutil.ReadFile(fileModel)
@@ -122,11 +122,11 @@ func (lr *LogisticRegression) SetupNumbericPredictorMap() {
 		m := make(map[string]float64)
 		for _, np := range rt.NumericPredictor {
 
-			// check if the model not used nlp variable
+			// check if the model are not natural language processing model
 			if getSubstringInsideParentheses(np.Name) != "" {
 				m[np.Name] = np.Coefficient
 
-				// model used nlp variable
+				//  if the model are natural language processing model
 			} else {
 				m[getSubstringInsideParentheses(np.Name)] = np.Coefficient
 			}
