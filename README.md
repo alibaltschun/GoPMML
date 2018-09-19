@@ -12,19 +12,20 @@ Contact me at alibaltschun@gmail.com
 
 ## Usage
 	// load model
-	modelXML, _ := ioutil.ReadFile(fileModel)
-	var model LogisticRegression
-	err := xml.Unmarshal([]byte(modelXML), &model)
+	lr,err := NewLogisticRegression("./model/logistic_regression.xml")
+	if err != nil {
+		panic(err)
+	}
 	
 	// create feature
-	features1 := map[string]float64{}
-	features1["x0"] = 0.1
-	features1["x1"] = 0.1
-	features1["x2"] = 0.1
-	features1["x3"] = 0.1
+	features := map[string]float64{}
+	features["x0"] = 0.1
+	features["x1"] = 0.1
+	features["x2"] = 0.1
+	features["x3"] = 0.1
 
 	// check empty numeric prediction array
-	label, confidence, err := model.Score(features1)
+	label, confidence, err := lr.Pred(features,true)
 	fmt.Println(label)
 	fmt.Println(confidence)
 	fmt.Println(err)
