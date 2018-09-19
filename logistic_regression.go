@@ -50,26 +50,26 @@ type NumericPredictor struct {
 // input  : Logistic Regression PMML file path
 // output : Golang Logistic Regression model
 func NewLogisticRegression(fileModel string) (LogisticRegression, error) {
-	var model LogisticRegression
+	var model PMMLLR
 
 	// get binary data of pmml file
 	modelXML, err := ioutil.ReadFile(fileModel)
 	if err != nil {
-		return model, err
+		return model.LogisticRegression, err
 	}
 
 	// transform binary xml into model object
 	err = xml.Unmarshal(modelXML, &model)
 	if err != nil {
-		return model, err
+		return model.LogisticRegression, err
 	}
 
 	// initial model to extract numberic predictor
 	// into map variable for ease access
-	model.SetupNumbericPredictorMap()
+	model.LogisticRegression.SetupNumbericPredictorMap()
 
 	// return golang logistic regression object
-	return model, nil
+	return model.LogisticRegression, nil
 }
 
 // method for score test data
@@ -144,6 +144,7 @@ func (lr *LogisticRegression) RegressionFunction(features map[string]float64) ma
 
 	// get all regressionTable for calculate confident
 	// features of every label
+
 	for _, regressionTable := range lr.RegressionTable {
 		var intercept float64
 
