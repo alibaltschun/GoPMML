@@ -41,7 +41,7 @@ type NormalizationMethodMap func(map[string]float64) (map[string]float64, error)
 
 var NormalizationMethodMaps map[string]NormalizationMethodMap
 
-//var NormalizationMethodNotImplemented = errors.New("Normalization Method Not Implemented Yet")
+var NormalizationMethodNotImplemented = errors.New("Normalization Method Not Implemented Yet")
 
 func init() {
 	NormalizationMethodMaps = map[string]NormalizationMethodMap{}
@@ -74,6 +74,10 @@ func SoftmaxNormalizationMethods(confidence map[string]float64) (map[string]floa
 	return nil, errors.New("feature is empty")
 }
 
+
+// method for convert pmml file into golang object
+// input  : Logistic Regression PMML file
+// output : Golang Logistic Regression model
 func NewLogisticRegression(source []byte) (*LogisticRegression, error) {
 	pmml := PMMLLR{}
 	err := xml.Unmarshal(source, &pmml)
@@ -82,6 +86,7 @@ func NewLogisticRegression(source []byte) (*LogisticRegression, error) {
 	}
 	return &pmml.LogisticRegression, nil
 }
+
 
 // func NewLogisticRegressionFromReader(source io.Reader) (*LogisticRegression, error) {
 // 	pmml := PMMLLR{}
@@ -92,9 +97,10 @@ func NewLogisticRegression(source []byte) (*LogisticRegression, error) {
 // 	return &pmml.LogisticRegression, nil
 // }
 
+
 // method for score test data
 // input : 	independent variable with map["var name"]value
-//			voting with boolean type
+//			normalize with boolean type
 //				true (default)  -> using normalization
 //				false			-> without normalization
 // return : -label with string type
@@ -103,22 +109,24 @@ func NewLogisticRegression(source []byte) (*LogisticRegression, error) {
 func (lr *LogisticRegression) Score(args ...interface{}) (string, map[string]float64, error) {
 
 	features := map[string]float64{}
-	voting := true
+	normalize := true
 
 	for _, arg := range args {
 		switch t := arg.(type) {
 		case map[string]float64:
 			features = t
 		case bool:
-			voting = t
+			normalize = t
 		default:
 			return "", nil, errors.New("Unknown argument")
 		}
 	}
+
 	// calculate confident value using log reg function
 	confident := lr.RegressionFunctionContinuous(features)
 
-	if !voting {
+	// return label without normalization
+	if !normalize {
 		return getMaxMap(confident), confident, nil
 	}
 
@@ -132,14 +140,17 @@ func (lr *LogisticRegression) Score(args ...interface{}) (string, map[string]flo
 		}
 	}
 
+	// calculate probability each class
 	prob, err := normMethod(confident)
 	if err != nil {
 		return "", nil, err
 	}
+
+	// return label with normalization
 	return getMaxMap(prob), prob, nil
 }
 
-// create map for containing numeric predictor
+// create map for containing numeric predictor / weight
 func (lr *LogisticRegression) SetupNumbericPredictorMap() {
 	for i, rt := range lr.RegressionTable {
 		m := make(map[string]float64)
@@ -181,7 +192,7 @@ func (lr *LogisticRegression) RegressionFunctionContinuous(features map[string]f
 	return confidence
 }
 
-// method for key with search max value in map
+// method for get key with search max value in map
 func getMaxMap(feature map[string]float64) string {
 	result := ""
 	max := -999.999
