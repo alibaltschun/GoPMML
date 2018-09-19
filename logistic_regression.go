@@ -1,10 +1,14 @@
-package goscore
+package gopmml
 
 import (
 	"encoding/xml"
-	"errors"
-	"math"
+	"io/ioutil"
 )
+
+// ===========================================================================================
+// ===========================================================================================
+// ===========================================================================================
+// ===========================================================================================
 
 type PMMLLR struct {
 	// struct xml:PMML
@@ -37,164 +41,135 @@ type NumericPredictor struct {
 	Coefficient float64 `xml:"coefficient,attr"`
 }
 
-type NormalizationMethodMap func(map[string]float64) (map[string]float64, error)
+// ===========================================================================================
+// ===========================================================================================
+// ===========================================================================================
+// ===========================================================================================
 
-var NormalizationMethodMaps map[string]NormalizationMethodMap
+// method for convert pmml file into golang object
+// input  : Logistic Regression PMML file path
+// output : Golang Logistic Regression model
+func NewLogisticRegression(fileModel string) (LogisticRegression, error) {
+	model := LogisticRegression{}
 
-//var NormalizationMethodNotImplemented = errors.New("Normalization Method Not Implemented Yet")
-
-func init() {
-	NormalizationMethodMaps = map[string]NormalizationMethodMap{}
-	NormalizationMethodMaps["softmax"] = SoftmaxNormalizationMethods
-}
-
-// function for compute confidence value
-// into probability using softMax function
-// input  : map of confidence value with float64 type
-// output : map of probability each class with float64 type
-func SoftmaxNormalizationMethods(confidence map[string]float64) (map[string]float64, error) {
-	if confidence != nil {
-		result := map[string]float64{}
-		tempExp := []float64{}
-		for _, v := range confidence {
-			tempExp = append(tempExp, math.Exp(v))
-		}
-		sum := 0.0
-		for _, j := range tempExp {
-			sum += j
-		}
-
-		i := 0
-		for k, _ := range confidence {
-			result[k] = tempExp[i]
-			i += 1
-		}
-		return result, nil
-	}
-	return nil, errors.New("feature is empty")
-}
-
-func NewLogisticRegression(source []byte) (*LogisticRegression, error) {
-	pmml := PMMLLR{}
-	err := xml.Unmarshal(source, &pmml)
+	// get binary data of pmml file
+	modelXML, err := ioutil.ReadFile(fileModel)
 	if err != nil {
-		return nil, err
+		return model, err
 	}
-	return &pmml.LogisticRegression, nil
-}
 
-// func NewLogisticRegressionFromReader(source io.Reader) (*LogisticRegression, error) {
-// 	pmml := PMMLLR{}
-// 	err := xml.NewDecoder(source).Decode(&pmml)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &pmml.LogisticRegression, nil
-// }
+	// transform binary xml into model object
+	err = xml.Unmarshal(modelXML, &model)
+	if err != nil {
+		return model, err
+	}
+
+	// initial model to extract numberic predictor
+	// into map variable for ease access
+	model.SetupNumbericPredictorMap()
+
+	// return golang logistic regression object
+	return model, nil
+}
 
 // method for score test data
 // input : 	independent variable with map["var name"]value
-//			voting with boolean type
+//			normalize with boolean type
 //				true (default)  -> using normalization
 //				false			-> without normalization
 // return : -label with string type
 //			-confident/prob with map type
 //			-errors
-func (lr *LogisticRegression) Score(args ...interface{}) (string, map[string]float64, error) {
+func (lr *LogisticRegression) Pred(features map[string]float64, normalize bool) (string, map[string]float64, error) {
 
-	features := map[string]float64{}
-	voting := true
-
-	for _, arg := range args {
-		switch t := arg.(type) {
-		case map[string]float64:
-			features = t
-		case bool:
-			voting = t
-		default:
-			return "", nil, errors.New("Unknown argument")
-		}
-	}
 	// calculate confident value using log reg function
-	confident := lr.RegressionFunctionContinuous(features)
+	confident := lr.RegressionFunction(features)
 
-	if !voting {
-		return getMaxMap(confident), confident, nil
+	// return label without normalization
+	if !normalize {
+		return ArgMax(confident), confident, nil
 	}
 
 	// calculate confident value with normalization method
 	var normMethod NormalizationMethodMap
 	if lr.NormalizationMethod != "" {
-		if _, ok := NormalizationMethods[lr.NormalizationMethod]; !ok {
+
+		// check if this library doesnt support normalization used by model
+		if _, ok := NormalizationMethodMaps[lr.NormalizationMethod]; !ok {
 			return "", nil, NormalizationMethodNotImplemented
+
+			// get normalization method from utils
 		} else {
 			normMethod = NormalizationMethodMaps[lr.NormalizationMethod]
 		}
 	}
 
+	// calculate probability each class
 	prob, err := normMethod(confident)
 	if err != nil {
 		return "", nil, err
 	}
-	return getMaxMap(prob), prob, nil
+
+	// return label with normalization
+	return ArgMax(prob), prob, nil
 }
 
-// create map for containing numeric predictor
+// create map for containing numeric predictor / weight
 func (lr *LogisticRegression) SetupNumbericPredictorMap() {
+
+	// get all regression table
 	for i, rt := range lr.RegressionTable {
 		m := make(map[string]float64)
 		for _, np := range rt.NumericPredictor {
+
+			// check if the model not used nlp variable
 			if getSubstringInsideParentheses(np.Name) != "" {
 				m[np.Name] = np.Coefficient
+
+				// model used nlp variable
 			} else {
 				m[getSubstringInsideParentheses(np.Name)] = np.Coefficient
 			}
 		}
+
+		// update numeric predictor map in regression table
 		lr.RegressionTable[i].NumericPredictorMap = &m
 	}
 }
 
 // method for calculate feature using logistic regression
 // function for countinous independent variable
-func (lr *LogisticRegression) RegressionFunctionContinuous(features map[string]float64) map[string]float64 {
+func (lr *LogisticRegression) RegressionFunction(features map[string]float64) map[string]float64 {
 	confidence := map[string]float64{}
 
+	// get all regressionTable for calculate confident
+	// features of every label
 	for _, regressionTable := range lr.RegressionTable {
 		var intercept float64
-		if regressionTable.Intercept != 0.0 {
-			intercept = regressionTable.Intercept
-		}
 
-		//fmt.Println(regressionTable.NumericPredictorMap)
+		// get intercept of regression table
+		intercept = regressionTable.Intercept
+
+		// check if the numeric predictor map is not empty
 		if regressionTable.NumericPredictorMap != nil {
+
+			// get pointer of numeric predictor map
 			m := *regressionTable.NumericPredictorMap
 			sum := 0.0
+
+			// calculate the multification of coefficient
+			// with value of sub features
 			for k, v := range features {
 				if c, ok := m[k]; ok {
 					sum += v * c
 				}
 			}
+
+			// append all confident value of each class
 			confidence[regressionTable.TargetCategory] = intercept + sum
 		}
 	}
 
+	// return confidence value
 	return confidence
-}
-
-// method for key with search max value in map
-func getMaxMap(feature map[string]float64) string {
-	result := ""
-	max := -999.999
-	for k, v := range feature {
-		if result != "" {
-			if max < v {
-				result = k
-				max = v
-			}
-		} else {
-			result = k
-			max = v
-		}
-	}
-	return result
 }
