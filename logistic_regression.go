@@ -80,7 +80,7 @@ func NewLogisticRegression(fileModel string) (LogisticRegression, error) {
 // return : -label with string type
 //			-confident/prob with map type
 //			-errors
-func (lr *LogisticRegression) Pred(features map[string]int8, normalize bool) (string, map[string]float64, error) {
+func (lr *LogisticRegression) Pred(features map[string]float64, normalize bool) (string, map[string]float64, error) {
 
 	// calculate confident value using log reg function
 	confident := lr.RegressionFunction(features)
@@ -140,7 +140,7 @@ func (lr *LogisticRegression) SetupNumbericPredictorMap() {
 
 // method for calculate feature using logistic regression
 // function for countinous independent variable
-func (lr *LogisticRegression) RegressionFunction(features map[string]int8) map[string]float64 {
+func (lr *LogisticRegression) RegressionFunction(features map[string]float64) map[string]float64 {
 	confidence := map[string]float64{}
 
 	// get all regressionTable for calculate confident
@@ -163,7 +163,7 @@ func (lr *LogisticRegression) RegressionFunction(features map[string]int8) map[s
 			// with value of sub features
 			for k, v := range features {
 				if c, ok := m[k]; ok {
-					sum += float64(v) * c
+					sum += v * c
 				}
 			}
 			// append all confident value of each class

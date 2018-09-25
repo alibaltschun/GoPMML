@@ -46,7 +46,7 @@ func SoftmaxNormalizationMethods(confidence map[string]float64) (map[string]floa
 
 		i := 0
 		for k, _ := range confidence {
-			result[k] = tempExp[i]
+			result[k] = tempExp[i] / sum
 			i += 1
 		}
 		return result, nil
