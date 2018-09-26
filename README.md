@@ -8,11 +8,16 @@ next implement : Naive Bayes
 Contact me at alibaltschun@gmail.com
 
 ## Installation
-	go get github.com/alibaltschun/GoPMML
+	go get github.com/alibaltschun/gopmml
 
 ## Usage
+
+	import(
+		pmml "github.com/alibaltschun/gopmml"
+	)
+
 	// load model
-	lr,err := NewLogisticRegression("./model/logistic_regression.xml")
+	lr,err := pmml.NewLogisticRegression("./model/logistic_regression.xml")
 	if err != nil {
 		panic(err)
 	}
