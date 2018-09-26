@@ -35,18 +35,15 @@ func getSubstringInsideParentheses(s string) string {
 func SoftmaxNormalizationMethods(confidence map[string]float64) (map[string]float64, error) {
 	if confidence != nil {
 		result := map[string]float64{}
-		tempExp := []float64{}
-		for _, v := range confidence {
-			tempExp = append(tempExp, math.Exp(v))
-		}
+
 		sum := 0.0
-		for _, j := range tempExp {
-			sum += j
+		for _, v := range confidence {
+			sum += math.Exp(v)
 		}
 
 		i := 0
-		for k, _ := range confidence {
-			result[k] = tempExp[i]
+		for k, v := range confidence {
+			result[k] = math.Exp(v) / sum
 			i += 1
 		}
 		return result, nil

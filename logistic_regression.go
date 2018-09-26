@@ -123,7 +123,8 @@ func (lr *LogisticRegression) SetupNumbericPredictorMap() {
 		for _, np := range rt.NumericPredictor {
 
 			// check if the model are not natural language processing model
-			if getSubstringInsideParentheses(np.Name) != "" {
+
+			if getSubstringInsideParentheses(np.Name) == "" {
 				m[np.Name] = np.Coefficient
 
 				//  if the model are natural language processing model
@@ -165,7 +166,6 @@ func (lr *LogisticRegression) RegressionFunction(features map[string]float64) ma
 					sum += v * c
 				}
 			}
-
 			// append all confident value of each class
 			confidence[regressionTable.TargetCategory] = intercept + sum
 		}
