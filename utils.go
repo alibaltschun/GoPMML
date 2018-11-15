@@ -59,6 +59,7 @@ func LogisNormalizationMethods(confidence map[string]float64) (map[string]float6
 		for k, v := range confidence{
 			result[k] = math.Log(v/(1-v + 0.000001))
 		}
+		return result,nil
 	}
 	return nil, errors.New("feature is empty")
 }
