@@ -3,6 +3,7 @@ package gopmml
 import (
 	"encoding/xml"
 	"io/ioutil"
+	"math"
 )
 
 // ===========================================================================================
@@ -104,6 +105,12 @@ func (lr *LogisticRegression) Pred(features map[string]float64, normalize bool) 
 		}
 	}
 
+	// check if the normalization need
+	// probability as input paramater
+	if lr.NormalizationMethod == "logit" {
+		confident = lr.ConfToProb(confident)
+	}
+
 	// calculate probability each class
 	prob, err := normMethod(confident)
 	if err != nil {
@@ -147,10 +154,9 @@ func (lr *LogisticRegression) RegressionFunction(features map[string]float64) ma
 	// features of every label
 
 	for _, regressionTable := range lr.RegressionTable {
-		var intercept float64
 
 		// get intercept of regression table
-		intercept = regressionTable.Intercept
+		intercept := regressionTable.Intercept
 
 		// check if the numeric predictor map is not empty
 		if regressionTable.NumericPredictorMap != nil {
@@ -173,4 +179,18 @@ func (lr *LogisticRegression) RegressionFunction(features map[string]float64) ma
 
 	// return confidence value
 	return confidence
+}
+
+func (lr *LogisticRegression) ConfToProb(confidence map[string]float64) map[string]float64 {
+
+	probability := make(map[string]float64)
+
+	for _, regressionTable := range lr.RegressionTable {
+
+		// get intercept of regression table
+		intercept := regressionTable.Intercept
+		targetCategory := regressionTable.TargetCategory
+		probability[targetCategory] = (1 / (1 + math.Exp(-(confidence[targetCategory] - intercept))))
+	}
+	return probability
 }
