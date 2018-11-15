@@ -14,7 +14,7 @@ var NormalizationMethodNotImplemented = errors.New("Normalization Method Not Imp
 func init() {
 	NormalizationMethodMaps = map[string]NormalizationMethodMap{}
 	NormalizationMethodMaps["softmax"] = SoftmaxNormalizationMethods
-	NormalizationMethodMaps["logit"] = LogisNormalizationMethods
+	NormalizationMethodMaps["logit"] = LogitNormalizationMethods
 }
 
 // method for check if the idependent variable is nlp
@@ -52,7 +52,7 @@ func SoftmaxNormalizationMethods(confidence map[string]float64) (map[string]floa
 	return nil, errors.New("feature is empty")
 }
 
-func LogisNormalizationMethods(confidence map[string]float64) (map[string]float64, error){
+func LogitNormalizationMethods(confidence map[string]float64) (map[string]float64, error){
 	if confidence != nil {
 		result := map[string]float64{}
 
